@@ -28,19 +28,11 @@ services:
       name: n8nDisk
       mountPath: "/home/node/.n8n"
       sizeGB: 10
-
-databases:
-  - name: n8nDB
-    plan: starter
-
-services:
   - type: redis
     name: n8n-redis
     plan: starter
     env: docker
-    envVars:
-      - key: REDIS_URL
-        fromService:
-          name: n8n-redis
-          type: redis
-          property: connectionString
+
+databases:
+  - name: n8nDB
+    plan: starter
