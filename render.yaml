@@ -6,7 +6,7 @@ services:
     plan: starter
     envVars:
       - key: WEBHOOK_URL
-        value: "${N8N_WEBHOOK_URL}"
+        value: "${N8N_WEBHOOK_URL}" # Replace with your actual webhook URL
       - key: GENERIC_TIMEZONE
         value: "Europe/Bucharest"
       - key: NODE_ENV
@@ -30,29 +30,21 @@ services:
       - key: DB_TYPE
         value: "postgresdb"
       - key: DB_POSTGRESDB_HOST
-        value: "${{ secrets.DB_POSTGRESDB_HOST }}"
+        value: "n8n-pgdb"
       - key: DB_POSTGRESDB_DATABASE
         value: "n8n_db"
       - key: DB_POSTGRESDB_USER
         value: "n8n_db"
       - key: DB_POSTGRESDB_PASSWORD
         value: "n8n_pwd"
-    # Specify healthCheckPath if your service exposes a health check endpoint.
-    # disk: optional persistent storage configuration.
-    
-  # Background worker service configuration
-  # Replicate the main n8n-app service configuration and adjust the command and other specifics as necessary.
+  
+  # Redis service configuration
+  - type: web
+    name: n8n-redis
+    env: docker
+    plan: starter
+    dockerfilePath: "Dockerfile.redis" # This assumes you have a Dockerfile named Dockerfile.redis for Redis configuration
 
-# Redis configuration
-- type: web # Use 'web' for Redis since Render does not differentiate Redis as a separate service type.
-  name: n8n-redis
-  env: docker
-  plan: starter
-  # Assuming you have a Dockerfile for Redis customization in your repository; otherwise, you might set up Redis manually on Render.
-  # envVars: Redis specific environment variables can be added here.
-
-# PostgreSQL database service
 databases:
   - name: n8n-pgdb
     plan: starter
-    # Environment variables are set automatically for databases in Render
