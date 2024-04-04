@@ -1,11 +1,12 @@
 services:
+  # n8n main application service
   - type: web
     name: n8n-app
     env: docker
-    dockerfilePath: Dockerfile # Ensure this Dockerfile uses the n8n-puppeteer image and configures it according to your needs.
+    plan: starter
     envVars:
       - key: WEBHOOK_URL
-        value: "${N8N_WEBHOOK_URL}" # Specify your actual webhook URL
+        value: "${N8N_WEBHOOK_URL}"
       - key: GENERIC_TIMEZONE
         value: "Europe/Bucharest"
       - key: NODE_ENV
@@ -22,43 +23,36 @@ services:
         value: "redis"
       - key: QUEUE_HEALTH_CHECK_ACTIVE
         value: "true"
-    buildCommand: "" # If additional build steps are needed, specify them here.
-    numInstances: 1 # Adjust based on your requirement
-    plan: starter # Adjust the plan as needed.
-    port: 5678
-    healthCheckPath: "/" # Adjust if there's a specific health check endpoint.
-    disk:
-      name: n8n-disk
-      mountPath: /home/node/.n8n
-      sizeGB: 2 # Adjust according to your needs.
-
-  - type: pserv # Background service for worker
-    name: n8n-worker
-    env: docker
-    dockerfilePath: Dockerfile # This Dockerfile should configure the worker command.
-    envVars: # Repeat the envVars from the n8n-app service or any worker-specific variables.
-      - key: COMMAND
-        value: "worker --concurrency=10"
-    numInstances: 8 # Number of worker instances
-    plan: starter # Adjust the plan as needed.
-
-  # Assuming Redis is managed similarly to how services are defined
-  - type: web # Render doesn't have a direct Redis service type, so you would typically use a web or background worker type, depending on your setup.
-    name: n8n-redis
-    env: docker
-    dockerImage: redis:6-alpine
-    plan: starter
-    healthCheckPath: "/"
-
-databases:
-  - name: n8n-pgdb
-    plan: starter # Choose the appropriate plan for your PostgreSQL database.
-    envVars:
+      - key: QUEUE_BULL_REDIS_HOST
+        value: "n8n-redis"
+      - key: QUEUE_BULL_REDIS_PORT
+        value: "6379"
       - key: DB_TYPE
         value: "postgresdb"
+      - key: DB_POSTGRESDB_HOST
+        value: "${{ secrets.DB_POSTGRESDB_HOST }}"
       - key: DB_POSTGRESDB_DATABASE
         value: "n8n_db"
       - key: DB_POSTGRESDB_USER
         value: "n8n_db"
       - key: DB_POSTGRESDB_PASSWORD
         value: "n8n_pwd"
+    # Specify healthCheckPath if your service exposes a health check endpoint.
+    # disk: optional persistent storage configuration.
+    
+  # Background worker service configuration
+  # Replicate the main n8n-app service configuration and adjust the command and other specifics as necessary.
+
+# Redis configuration
+- type: web # Use 'web' for Redis since Render does not differentiate Redis as a separate service type.
+  name: n8n-redis
+  env: docker
+  plan: starter
+  # Assuming you have a Dockerfile for Redis customization in your repository; otherwise, you might set up Redis manually on Render.
+  # envVars: Redis specific environment variables can be added here.
+
+# PostgreSQL database service
+databases:
+  - name: n8n-pgdb
+    plan: starter
+    # Environment variables are set automatically for databases in Render
