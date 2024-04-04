@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: n8n
+    env: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    buildCommand: echo "Using n8nio/n8n:${SOFTWARE_VERSION_TAG} image"
+    envVars:
+      - key: SOFTWARE_VERSION_TAG
+        value: latest # Adjust as necessary
+      - key: DOMAIN
+        fromGroup: my-secrets
+      - key: POSTGRES_DB
+        fromGroup: my-secrets
+      - key: POSTGRES_USER
+        fromGroup: my-secrets
+      - key: SOFTWARE_PASSWORD
+        fromGroup: my-secrets
+      - key: SMTP_HOST
+        fromGroup: my-secrets
+      - key: SMTP_PORT
+        fromGroup: my-secrets
+      - key: N8N_SMTP_USER
+        fromGroup: my-secrets
+      - key: N8N_SMTP_PASS
+        fromGroup: my-secrets
+      - key: SMTP_FROM_EMAIL
+        fromGroup: my-secrets
+      - key: N8N_ENCRYPTION_KEY
+        fromGroup: my-secrets
+      # Add the rest of your environment variables here
+    healthCheckPath: /
+    disk:
+      name: n8nDisk
+      mountPath: /home/node/.n8n
+      sizeGB: 10
+
+  - type: pserv
+    name: n8n-worker
+    env: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    buildCommand: echo "Using n8nio/n8n:${SOFTWARE_VERSION_TAG} image"
+    envVars:
+      # Repeat the environment variables here, but adjust for worker specifics if necessary
+      - key: SOFTWARE_VERSION_TAG
+        value: latest # Adjust as necessary
+      # Add the rest of your environment variables here
+    startCommand: "n8n worker"
+
+databases:
+  - name: n8nDB
+    plan: starter
+    envVars:
+      - key: POSTGRES_DB
+        fromGroup: my-secrets
+      - key: POSTGRES_USER
+        fromGroup: my-secrets
+      - key: SOFTWARE_PASSWORD
+        fromGroup: my-secrets
+
+  - name: n8nRedis
+    plan: starter
+    type: redis
