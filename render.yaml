@@ -1,91 +1,70 @@
 services:
-  # n8n service configuration
+  # n8n web service configuration
   - type: web
     name: n8n-instance
     env: docker
     docker:
       image: 'docker.n8n.io/n8nio/n8n:latest'
     envVars:
-      - key: SERVICE_FQDN_N8N
-        fromService: n8n-instance
-        type: URL
       - key: N8N_EDITOR_BASE_URL
-        value: '${{ secrets.SERVICE_FQDN_N8N }}'
+        value: 'https://${{ services.n8n-instance.url }}'
       - key: WEBHOOK_URL
-        value: '${{ secrets.SERVICE_FQDN_N8N }}/webhook'
+        value: 'https://${{ services.n8n-instance.url }}/webhook'
       - key: N8N_HOST
-        value: '${{ secrets.SERVICE_DOMAIN_N8N }}'
+        value: '${{ services.n8n-instance.host }}'
       - key: GENERIC_TIMEZONE
-        value: 'America/New_York'
-      - key: TZ
-        value: 'America/New_York'
-      - key: DB_POSTGRESDB_DATABASE
-        value: '${{ secrets.DB_POSTGRESDB_DATABASE }}'
-      - key: DB_POSTGRESDB_HOST
-        fromService: postgres
-        type: HOSTNAME
-      - key: DB_POSTGRESDB_PASSWORD
-        value: '${{ secrets.DB_POSTGRESDB_PASSWORD }}'
-      - key: DB_POSTGRESDB_PORT
-        value: '5432'
-      - key: DB_POSTGRESDB_SCHEMA
-        value: 'public'
-      - key: DB_POSTGRESDB_USER
-        value: '${{ secrets.DB_POSTGRESDB_USER }}'
-      - key: DB_TYPE
-        value: 'postgresdb'
+        value: 'UTC' # Change to your timezone
+      - key: NODE_ENV
+        value: 'production'
+      - key: N8N_ENCRYPTION_KEY
+        value: '${{ secrets.N8N_ENCRYPTION_KEY }}'
+      - key: NODE_OPTIONS
+        value: '--max-old-space-size=2048'
       - key: EXECUTIONS_MODE
-        value: 'regular' # Change to 'queue' if using queue mode
-      - key: N8N_LOG_LEVEL
-        value: 'info'
-      - key: N8N_METRICS
+        value: 'queue'
+      - key: NODE_FUNCTION_ALLOW_EXTERNAL
+        value: '*'
+      - key: EXECUTIONS_QUEUE
+        value: 'redis'
+      - key: QUEUE_HEALTH_CHECK_ACTIVE
         value: 'true'
-      - key: QUEUE_BULL_PREFIX
-        value: 'n8n'
-      - key: QUEUE_BULL_REDIS_DB
-        value: '0'
       - key: QUEUE_BULL_REDIS_HOST
-        fromService: redis
-        type: HOSTNAME
-      - key: QUEUE_BULL_REDIS_PASSWORD
-        value: '${{ secrets.REDIS_PASSWORD }}'
+        value: '${{ services.redis.internalAddress }}'
       - key: QUEUE_BULL_REDIS_PORT
         value: '6379'
-      - key: N8N_DIAGNOSTICS_ENABLED
-        value: 'false'
-      - key: N8N_VERSION_NOTIFICATIONS_ENABLED
-        value: 'true'
-      - key: N8N_TEMPLATES_ENABLED
-        value: 'true'
-      - key: EXTERNAL_FRONTEND_HOOKS_URLS
-        value: '' # Specify if any
-      - key: N8N_DIAGNOSTICS_CONFIG_FRONTEND
-        value: '' # Specify diagnostic config for frontend if any
-      - key: N8N_DIAGNOSTICS_CONFIG_BACKEND
-        value: '' # Specify diagnostic config for backend if any
-      - key: N8N_ONBOARDING_FLOW_DISABLED
-        value: 'true'
+      - key: QUEUE_BULL_REDIS_PASSWORD
+        value: '${{ secrets.REDIS_PASSWORD }}'
+      - key: DB_TYPE
+        value: 'postgresdb'
+      - key: DB_POSTGRESDB_HOST
+        value: '${{ services.postgres.internalAddress }}'
+      - key: DB_POSTGRESDB_DATABASE
+        value: 'n8n_db'
+      - key: DB_POSTGRESDB_USER
+        value: 'n8n_user'
+      - key: DB_POSTGRESDB_PASSWORD
+        value: '${{ secrets.DB_POSTGRESDB_PASSWORD }}'
     volumes:
       - name: n8n-data
-        mountPath: /home/node/
+        mountPath: /home/node/.n8n
         sizeGB: 2
 
-  # PostgreSQL service configuration
-  - type: pserv
+  # PostgreSQL private service configuration
+  - type: private-service
     name: postgres
-    env: postgres-12
+    env: postgres-14 # Use the latest stable version supported by Render
     envVars:
+      - key: POSTGRES_DB
+        value: 'n8n_db'
       - key: POSTGRES_USER
-        value: '${{ secrets.DB_POSTGRESDB_USER }}'
+        value: 'n8n_user'
       - key: POSTGRES_PASSWORD
         value: '${{ secrets.DB_POSTGRESDB_PASSWORD }}'
-      - key: POSTGRES_DB
-        value: '${{ secrets.DB_POSTGRESDB_DATABASE }}'
 
-  # Redis service configuration
-  - type: pserv
+  # Redis private service configuration
+  - type: private-service
     name: redis
-    env: redis-6
+    env: redis-6 # Use the latest stable version supported by Render
     envVars:
       - key: REDIS_PASSWORD
         value: '${{ secrets.REDIS_PASSWORD }}'
