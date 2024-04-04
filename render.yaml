@@ -1,38 +1,64 @@
 services:
   - type: web
-    name: n8n
+    name: n8n-app
     env: docker
-    plan: standard
-    region: oregon
+    dockerfilePath: Dockerfile # Ensure this Dockerfile uses the n8n-puppeteer image and configures it according to your needs.
     envVars:
-      - key: EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS
-        value: "true"
-      - key: EXECUTIONS_DATA_SAVE_ON_ERROR
-        value: "all"
-      - key: EXECUTIONS_DATA_SAVE_ON_SUCCESS
-        value: "all"
-      - key: N8N_LOG_LEVEL
-        value: "info"
-      - key: EXECUTIONS_DATA_PRUNE
-        value: "true"
-      - key: EXECUTIONS_DATA_MAX_AGE
-        value: "672"
-      - key: NODE_TLS_REJECT_UNAUTHORIZED
-        value: "1"
-      - key: N8N_METRICS
-        value: "true"
+      - key: WEBHOOK_URL
+        value: "${N8N_WEBHOOK_URL}" # Specify your actual webhook URL
+      - key: GENERIC_TIMEZONE
+        value: "Europe/Bucharest"
+      - key: NODE_ENV
+        value: "production"
+      - key: N8N_ENCRYPTION_KEY
+        value: "LnGMcaSProKXSD443aI5PzXA0N8sLxJ3P2X17"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=2048"
+      - key: EXECUTIONS_MODE
+        value: "queue"
+      - key: NODE_FUNCTION_ALLOW_EXTERNAL
+        value: "*"
+      - key: EXECUTIONS_QUEUE
+        value: "redis"
       - key: QUEUE_HEALTH_CHECK_ACTIVE
         value: "true"
-    healthCheckPath: "/"
+    buildCommand: "" # If additional build steps are needed, specify them here.
+    numInstances: 1 # Adjust based on your requirement
+    plan: starter # Adjust the plan as needed.
+    port: 5678
+    healthCheckPath: "/" # Adjust if there's a specific health check endpoint.
     disk:
-      name: n8nDisk
-      mountPath: "/home/node/.n8n"
-      sizeGB: 10
-  - type: redis
-    name: n8n-redis
-    plan: starter
+      name: n8n-disk
+      mountPath: /home/node/.n8n
+      sizeGB: 2 # Adjust according to your needs.
+
+  - type: pserv # Background service for worker
+    name: n8n-worker
     env: docker
+    dockerfilePath: Dockerfile # This Dockerfile should configure the worker command.
+    envVars: # Repeat the envVars from the n8n-app service or any worker-specific variables.
+      - key: COMMAND
+        value: "worker --concurrency=10"
+    numInstances: 8 # Number of worker instances
+    plan: starter # Adjust the plan as needed.
+
+  # Assuming Redis is managed similarly to how services are defined
+  - type: web # Render doesn't have a direct Redis service type, so you would typically use a web or background worker type, depending on your setup.
+    name: n8n-redis
+    env: docker
+    dockerImage: redis:6-alpine
+    plan: starter
+    healthCheckPath: "/"
 
 databases:
-  - name: n8nDB
-    plan: starter
+  - name: n8n-pgdb
+    plan: starter # Choose the appropriate plan for your PostgreSQL database.
+    envVars:
+      - key: DB_TYPE
+        value: "postgresdb"
+      - key: DB_POSTGRESDB_DATABASE
+        value: "n8n_db"
+      - key: DB_POSTGRESDB_USER
+        value: "n8n_db"
+      - key: DB_POSTGRESDB_PASSWORD
+        value: "n8n_pwd"
