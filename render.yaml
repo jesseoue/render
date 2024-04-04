@@ -4,23 +4,7 @@ services:
     env: docker
     plan: standard
     region: oregon
-    buildCommand: echo "Using n8nio/n8n:${SOFTWARE_VERSION_TAG} image"
-    dockerfilePath: Dockerfile
     envVars:
-      - key: N8N_BASIC_AUTH_ACTIVE
-        value: "true"
-      - key: N8N_BASIC_AUTH_USER
-        value: root
-      - key: N8N_BASIC_AUTH_PASSWORD
-        value: ${SOFTWARE_PASSWORD}
-      - key: N8N_HOST
-        value: ${DOMAIN}
-      - key: N8N_PROTOCOL
-        value: "https"
-      - key: WEBHOOK_TUNNEL_URL
-        value: https://${DOMAIN}/
-      - key: N8N_ENCRYPTION_KEY
-        value: ${N8N_ENCRYPTION_KEY}
       - key: EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS
         value: "true"
       - key: EXECUTIONS_DATA_SAVE_ON_ERROR
@@ -33,55 +17,30 @@ services:
         value: "true"
       - key: EXECUTIONS_DATA_MAX_AGE
         value: "672"
-      - key: EXECUTIONS_DATA_PRUNE_MAX_COUNT
-        value: "10000"
       - key: NODE_TLS_REJECT_UNAUTHORIZED
         value: "1"
       - key: N8N_METRICS
         value: "true"
       - key: QUEUE_HEALTH_CHECK_ACTIVE
         value: "true"
-      - key: SMTP_FROM_EMAIL
-        value: ${SMTP_FROM_EMAIL}
-      - key: SMTP_HOST
-        value: ${SMTP_HOST}
-      - key: SMTP_PORT
-        value: ${SMTP_PORT}
-      # Ensure to add SMTP_USER and SMTP_PASSWORD if your SMTP server requires authentication
-    healthCheckPath: /
+    healthCheckPath: "/"
     disk:
       name: n8nDisk
-      mountPath: /home/node/.n8n
+      mountPath: "/home/node/.n8n"
       sizeGB: 10
 
 databases:
   - name: n8nDB
     plan: starter
+
+services:
+  - type: redis
+    name: n8n-redis
+    plan: starter
+    env: docker
     envVars:
-      - key: DB_TYPE
-        value: "postgresdb"
-      - key: DB_POSTGRESDB_HOST
+      - key: REDIS_URL
         fromService:
-          name: n8nDB
-          type: postgres
-          property: host
-      - key: DB_POSTGRESDB_PORT
-        fromService:
-          name: n8nDB
-          type: postgres
-          property: port
-      - key: DB_POSTGRESDB_DATABASE
-        fromService:
-          name: n8nDB
-          type: postgres
-          property: database
-      - key: DB_POSTGRESDB_USER
-        fromService:
-          name: n8nDB
-          type: postgres
-          property: user
-      - key: DB_POSTGRESDB_PASSWORD
-        fromService:
-          name: n8nDB
-          type: postgres
-          property: password
+          name: n8n-redis
+          type: redis
+          property: connectionString
